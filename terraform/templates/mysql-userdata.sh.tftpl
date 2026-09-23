@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euxo pipefail
+exec > /var/log/user-data.log 2>&1
+
+dnf update -y
+dnf install -y mariadb105-server mariadb105
+
+cat >/etc/my.cnf.d/freshbox.cnf <<'EOF'
+[mysqld]
+bind-address=0.0.0.0
+skip-name-resolve
+EOF
+
+systemctl enable --now mariadb
+
+echo '${init_sql_b64}' | base64 -d > /tmp/init.sql
+mysql -u root < /tmp/init.sql
+
+mysql -u root <<SQL
+CREATE USER IF NOT EXISTS '${db_user}'@'%' IDENTIFIED BY '${db_password}';
+GRANT ALL PRIVILEGES ON ${db_name}.* TO '${db_user}'@'%';
+FLUSH PRIVILEGES;
+SQL
+
+echo "=== MySQL EP1 listo ==="

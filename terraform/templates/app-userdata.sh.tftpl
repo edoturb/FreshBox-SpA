@@ -1,0 +1,95 @@
+#!/bin/bash
+set -euxo pipefail
+exec > /var/log/user-data.log 2>&1
+
+dnf update -y
+dnf install -y docker
+systemctl enable --now docker
+usermod -aG docker ec2-user
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-aarch64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+REGION="${region}"
+ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+REGISTRY="$${ACCOUNT_ID}.dkr.ecr.$${REGION}.amazonaws.com"
+
+aws ecr get-login-password --region "$${REGION}" \
+  | docker login --username AWS --password-stdin "$${REGISTRY}"
+
+mkdir -p /opt/freshbox
+cat >/opt/freshbox/docker-compose.yml <<EOF
+services:
+  frontend:
+    image: $${REGISTRY}/freshbox-frontend:latest
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - get-products
+      - create-product
+      - update-product
+      - delete-product
+    restart: unless-stopped
+
+  get-products:
+    image: $${REGISTRY}/freshbox-get-products:latest
+    container_name: get-products
+    environment:
+      DB_HOST: "${db_host}"
+      DB_USER: "${db_user}"
+      DB_PASS: "${db_password}"
+      DB_NAME: "${db_name}"
+      DB_PORT: "3306"
+      PORT: "3001"
+    restart: unless-stopped
+
+  create-product:
+    image: $${REGISTRY}/freshbox-create-product:latest
+    container_name: create-product
+    environment:
+      DB_HOST: "${db_host}"
+      DB_USER: "${db_user}"
+      DB_PASS: "${db_password}"
+      DB_NAME: "${db_name}"
+      DB_PORT: "3306"
+      PORT: "3002"
+    restart: unless-stopped
+
+  update-product:
+    image: $${REGISTRY}/freshbox-update-product:latest
+    container_name: update-product
+    environment:
+      DB_HOST: "${db_host}"
+      DB_USER: "${db_user}"
+      DB_PASS: "${db_password}"
+      DB_NAME: "${db_name}"
+      DB_PORT: "3306"
+      PORT: "3003"
+    restart: unless-stopped
+
+  delete-product:
+    image: $${REGISTRY}/freshbox-delete-product:latest
+    container_name: delete-product
+    environment:
+      DB_HOST: "${db_host}"
+      DB_USER: "${db_user}"
+      DB_PASS: "${db_password}"
+      DB_NAME: "${db_name}"
+      DB_PORT: "3306"
+      PORT: "3004"
+    restart: unless-stopped
+EOF
+
+# MySQL puede seguir instalándose cuando arranca el ASG
+for i in $(seq 1 30); do
+  if docker compose -f /opt/freshbox/docker-compose.yml pull && docker compose -f /opt/freshbox/docker-compose.yml up -d; then
+    break
+  fi
+  sleep 20
+done
+
+docker ps
+echo "=== App EP1 lista ==="
