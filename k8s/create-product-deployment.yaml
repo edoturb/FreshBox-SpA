@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: create-product
-        image: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/freshbox-create-product:latest
+        image: 850411985525.dkr.ecr.us-east-1.amazonaws.com/freshbox-create-product:latest
         ports:
         - containerPort: 3002
         env:

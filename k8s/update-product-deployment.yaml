@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: update-product
-        image: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/freshbox-update-product:latest
+        image: 850411985525.dkr.ecr.us-east-1.amazonaws.com/freshbox-update-product:latest
         ports:
         - containerPort: 3003
         env:

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/freshbox-frontend:latest
+        image: 850411985525.dkr.ecr.us-east-1.amazonaws.com/freshbox-frontend:latest
         ports:
         - containerPort: 80
         resources:

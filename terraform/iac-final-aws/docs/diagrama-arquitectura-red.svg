@@ -1,0 +1,20 @@
+<svg width="680" height="430" viewBox="0 0 680 430" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#3d3d3a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect width="680" height="430" fill="#ffffff"/>
+<text x="220" y="18" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5f5e5a">Internet</text>
+<line x1="220" y1="24" x2="220" y2="45" stroke="#5f5e5a" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="135" y="45" width="170" height="36" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="220" y="63" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" fill="#2C2C2A">Internet gateway</text>
+<line x1="220" y1="81" x2="220" y2="195" stroke="#5f5e5a" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="40" y="95" width="600" height="300" rx="20" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="60" y="118" font-family="sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">AWS · us-east-1</text>
+<rect x="70" y="145" width="540" height="225" rx="16" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="90" y="168" font-family="sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">VPC 10.0.0.0/16</text>
+<rect x="100" y="195" width="240" height="155" rx="12" fill="#E6F1FB" stroke="#378ADD" stroke-width="0.5"/>
+<text x="220" y="223" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#0C447C">Subred pública</text>
+<text x="220" y="241" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#185FA5">10.0.1.0/24 · EC2 + SG</text>
+<rect x="380" y="195" width="200" height="155" rx="12" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="480" y="223" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">Subred privada</text>
+<text x="480" y="241" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#444441">10.0.2.0/24 (reservada)</text>
+<text x="340" y="412" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5f5e5a">Azul = subred expuesta a internet, con la instancia EC2 y el security group</text>
+</svg>

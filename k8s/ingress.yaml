@@ -4,26 +4,49 @@ metadata:
   name: freshbox-ingress
   namespace: freshbox
   annotations:
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/conditions.create-product: '[{"field":"http-request-method","httpRequestMethodConfig":{"values":["POST"]}}]'
+    alb.ingress.kubernetes.io/conditions.update-product: '[{"field":"http-request-method","httpRequestMethodConfig":{"values":["PUT"]}}]'
+    alb.ingress.kubernetes.io/conditions.delete-product: '[{"field":"http-request-method","httpRequestMethodConfig":{"values":["DELETE"]}}]'
+    alb.ingress.kubernetes.io/conditions.get-products: '[{"field":"http-request-method","httpRequestMethodConfig":{"values":["GET"]}}]'
 spec:
+  ingressClassName: alb
   rules:
-  - http:
-      paths:
-      - path: /api/products
-        pathType: Prefix
-        backend:
-          service:
-            name: get-products
-            port:
-              number: 3001
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend
-            port:
-              number: 80
-
-# 2026 - Disenador asignatura: Ignacio A. Pastenet M.
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api/products
+            pathType: Prefix
+            backend:
+              service:
+                name: create-product
+                port:
+                  number: 3002
+          - path: /api/products
+            pathType: Prefix
+            backend:
+              service:
+                name: update-product
+                port:
+                  number: 3003
+          - path: /api/products
+            pathType: Prefix
+            backend:
+              service:
+                name: delete-product
+                port:
+                  number: 3004
+          - path: /api/products
+            pathType: Prefix
+            backend:
+              service:
+                name: get-products
+                port:
+                  number: 3001

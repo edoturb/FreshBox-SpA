@@ -7,11 +7,11 @@ aws ecr get-login-password --region $REGION | docker login --username AWS --pass
 REPOS=("freshbox-frontend" "freshbox-get-products" "freshbox-create-product" "freshbox-update-product" "freshbox-delete-product")
 for REPO in "${REPOS[@]}"; do aws ecr create-repository --repository-name $REPO --region $REGION 2>/dev/null || true; done
 
-docker build --platform linux/arm64 -t freshbox-frontend ./microservicioEKSFrontend
-docker build --platform linux/arm64 -t freshbox-get-products ./microserviciosEKSBackend/get-products
-docker build --platform linux/arm64 -t freshbox-create-product ./microserviciosEKSBackend/create-product
-docker build --platform linux/arm64 -t freshbox-update-product ./microserviciosEKSBackend/update-product
-docker build --platform linux/arm64 -t freshbox-delete-product ./microserviciosEKSBackend/delete-product
+docker build --platform linux/amd64 --platform linux/amd64 --platform linux/arm64 -t freshbox-frontend ./microservicioEKSFrontend
+docker build --platform linux/amd64 --platform linux/amd64 --platform linux/arm64 -t freshbox-get-products ./microserviciosEKSBackend/get-products
+docker build --platform linux/amd64 --platform linux/amd64 --platform linux/arm64 -t freshbox-create-product ./microserviciosEKSBackend/create-product
+docker build --platform linux/amd64 --platform linux/amd64 --platform linux/arm64 -t freshbox-update-product ./microserviciosEKSBackend/update-product
+docker build --platform linux/amd64 --platform linux/amd64 --platform linux/arm64 -t freshbox-delete-product ./microserviciosEKSBackend/delete-product
 
 for REPO in "${REPOS[@]}"; do
     docker tag $REPO $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO:latest
