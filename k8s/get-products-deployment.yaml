@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: get-products
-        image: 850411985525.dkr.ecr.us-east-1.amazonaws.com/freshbox-get-products:latest
+        image: 654170272579.dkr.ecr.us-east-1.amazonaws.com/freshbox-get-products:latest
         ports:
         - containerPort: 3001
         env:
