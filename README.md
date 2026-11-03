@@ -1,100 +1,56 @@
-# FreshBox SpA — Plataforma de Catalogo Online (EP1)
+# FreshBox SpA — Arquitectura Cloud EP2: EKS + RDS MySQL Multi-AZ
 
-## Descripcion
 
-Aplicacion CRUD de productos organicos para FreshBox SpA. Arquitectura de 3 capas con EC2 + Docker + MySQL, alta disponibilidad Multi-AZ con ALB y Auto Scaling.
-
-## Arquitectura EP1 (3 Capas - EC2 + Docker)
-
-| Capa | Componente | Servicio AWS |
-|------|-----------|--------------|
-| Publica | ALB | Application Load Balancer |
-| Privada APP | 2x EC2 t4g.small + Docker (5 contenedores) | EC2 Multi-AZ |
-| Privada DATA | EC2 t4g.small + MySQL | EC2 + AWS Backup |
-| Registro | 5 imagenes Docker | Amazon ECR |
-| Seguridad | Firewalls por capa | Security Groups |
-
-## Microservicios (5 contenedores Docker)
-
-| Contenedor | Puerto | Endpoint | Metodo |
-|------------|--------|----------|--------|
-| frontend | 80 | / | - |
-| get-products | 3001 | /api/products | GET |
-| create-product | 3002 | /api/products | POST |
-| update-product | 3003 | /api/products/:id | PUT |
-| delete-product | 3004 | /api/products/:id | DELETE |
-
-## Estructura de Archivos
-
-```
-desarrolloappEP1/
-├── README.md
-├── docker-compose.yml              (prueba local)
-├── init.sql                        (BD freshbox + 5 productos organicos)
-├── microservicioFrontend/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   ├── index.html
-│   ├── css/styles.css
-│   └── js/app.js
-├── microserviciosBackend/
-│   ├── get-products/  (Dockerfile, package.json, index.js)
-│   ├── create-product/
-│   ├── update-product/
-│   └── delete-product/
-└── scripts/
-    ├── user-data-ec2.sh
-    ├── ecr-push.sh
-    ├── deploy-containers.sh
-    └── guia-docente-ep1.md         (guia paso a paso - referencia docente)
-```
-
-## Variables de Entorno
-
-| Variable | Valor local | Valor AWS |
-|----------|-------------|-----------|
-| DB_HOST | db | (IP privada EC2 MySQL) |
-| DB_USER | alumno | alumno |
-| DB_PASS | alumno123 | alumno123 |
-| DB_NAME | freshbox | freshbox |
-| DB_PORT | 3306 | 3306 |
-
-## Datos de Prueba
-
-5 productos organicos FreshBox:
-1. Manzana organica 1kg
-2. Lechuga hidroponica
-3. Granola artesanal 500g
-4. Jugo natural naranja 1L
-5. Mix frutos secos 250g
-
-## Prueba Local
-
-```bash
-cd desarrolloappEP1/
-docker compose build
-docker compose up -d
-docker compose ps
-```
-
-- Frontend: http://localhost:8080
-- API: http://localhost:3001/api/products
-
-## Pruebas CRUD (PowerShell)
-
-```powershell
-Invoke-RestMethod http://localhost:3001/api/products
-Invoke-RestMethod -Method POST -Uri http://localhost:3002/api/products -ContentType "application/json" -Body '{"nombre":"Quinoa organica 500g","descripcion":"Quinoa premium","precio":4990,"stock":80,"categoria":"Granos"}'
-Invoke-RestMethod -Method PUT -Uri http://localhost:3003/api/products/1 -ContentType "application/json" -Body '{"nombre":"Manzana organica 2kg","descripcion":"Manzana roja premium","precio":5990,"stock":60,"categoria":"Frutas"}'
-Invoke-RestMethod -Method DELETE -Uri http://localhost:3004/api/products/6
-```
-
-## Detener
-
-```bash
-docker compose down -v
-```
+ ##🚀 Resumen Ejecutivo
+Migración del sistema FreshBox SpA desde una arquitectura basada en EC2 + Docker (EP1) hacia una plataforma altamente disponible, autorreparable y escalable en Amazon EKS y Amazon RDS MySQL Multi-AZ. La aplicación mantiene la funcionalidad CRUD dividida en 5 microservicios desacoplados (1 frontend Nginx y 4 backends Node.js).
 
 ---
 
-2026 - Disenador: Ignacio A. Pastenet M.
+## 🏗️ Arquitectura por Capas y Subredes
+
+La VPC principal utiliza el bloque CIDR `10.0.0.0/22` distribuida en 2 Zonas de Disponibilidad (`us-east-1a` y `us-east-1b`) con 6 subredes en total:
+
+| Capa | Subredes (CIDR) | Componentes Principales | Tipo de Acceso |
+| :--- | :--- | :--- | :--- |
+| **1. Pública** | `10.0.0.0/24` (1a)<br>`10.0.1.0/24` (1b) | Internet Gateway, ALB internet-facing, NAT Gateway + Elastic IP | Público (HTTP 80) |
+| **2. Aplicación** | `10.0.2.0/25` (1a)<br>`10.0.2.128/25` (1b) | EKS Node Group (`t3.small`, 2-4 nodos), 10 pods activos | Privado (vía ALB e internet por NAT) |
+| **3. Datos** | `10.0.3.0/25` (1a)<br>`10.0.3.128/25` (1b) | Amazon RDS MySQL 8.0 Multi-AZ (Instancia primaria + Standby) | Privado (puerto 3306 desde EKS) |
+
+---
+
+## 📦 Tabla de Microservicios y Manifiestos K8s
+
+La aplicación comprende 5 Deployments en el namespace `freshbox`, sumando 10 pods (2 réplicas por servicio) repartidos en 2 zonas de disponibilidad:
+
+| Microservicio | Imagen ECR | Puerto | Service (ClusterIP) | Réplicas | Requests / Limits CPU & RAM |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `frontend` | `freshbox-frontend` | 80 | `frontend:80` | 2 | `100m/128Mi` - `250m/256Mi` |
+| `get-products` | `freshbox-get-products` | 3001 | `get-products:3001` | 2 (HPA 2-5) | `100m/128Mi` - `250m/256Mi` |
+| `create-product` | `freshbox-create-product` | 3002 | `create-product:3002` | 2 (HPA 2-5) | `100m/128Mi` - `250m/256Mi` |
+| `update-product` | `freshbox-update-product` | 3003 | `update-product:3003` | 2 (HPA 2-5) | `100m/128Mi` - `250m/256Mi` |
+| `delete-product` | `freshbox-delete-product` | 3004 | `delete-product:3004` | 2 (HPA 2-5) | `100m/128Mi` - `250m/256Mi` |
+
+---
+
+## 🛡️ Seguridad y Control de Acceso
+
+* **Cadena de Security Groups:** Enrutamiento en cascada: ALB SG (`freshbox-alb-sg`) → EKS Cluster SG → RDS SG (`freshbox-data-sg` permitiendo puerto 3306).
+* **Almacenamiento de Datos:** Instancia RDS con cifrado de almacenamiento activo (`storage_encrypted = true`) con KMS y backups automáticos de 7 días.
+* **Gestión de Credenciales:** Parámetros sensibles en `Secret` (`freshbox-secret`) y configuración no sensible en `ConfigMap` (`freshbox-config`).
+
+---
+
+## 🔄 Pipeline CI/CD (GitHub Actions)
+
+El workflow en `.github/workflows/deploy.yml` se dispara automáticamente tras cada push a la rama `ep2`:
+
+1. **Checkout:** Descarga del código fuente en el runner.
+2. **Autenticación AWS:** Configuración de credenciales temporales con `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN` desde GitHub Secrets.
+3. **Kubeconfig:** Actualización del archivo de contexto mediante `aws eks update-kubeconfig`.
+4. **Despliegue Declarativo:** Aplicación secuencial con `kubectl apply -f k8s/` (`namespace`, `secret`, `configmap`, `deployments`, `ingress`, `hpa`).
+5. **Validación:** Monitoreo del estado con `kubectl rollout status`.
+
+---
+
+## ⚠️ Nota sobre Credenciales Temporales
+Al utilizar **AWS Academy Learner Lab**, las credenciales expiran al finalizar cada sesión de laboratorio. Es necesario actualizar el
