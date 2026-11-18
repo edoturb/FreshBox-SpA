@@ -4,7 +4,7 @@ metadata:
   name: freshbox-config
   namespace: freshbox
 data:
-  DB_HOST: "terraform-20261102204957066400000001.cttxk2y7920n.us-east-1.rds.amazonaws.com"
+  DB_HOST: "terraform-20261117084605625200000002.c9qcgqyimpcw.us-east-1.rds.amazonaws.com"
   DB_NAME: "freshbox"
   DB_PORT: "3306"
 

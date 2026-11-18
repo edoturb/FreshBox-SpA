@@ -5,6 +5,8 @@ metadata:
   namespace: freshbox
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/healthcheck-path: /api/products
+    alb.ingress.kubernetes.io/success-codes: '200-404'
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/conditions.create-product: '[{"field":"http-request-method","httpRequestMethodConfig":{"values":["POST"]}}]'
     alb.ingress.kubernetes.io/conditions.update-product: '[{"field":"http-request-method","httpRequestMethodConfig":{"values":["PUT"]}}]'
