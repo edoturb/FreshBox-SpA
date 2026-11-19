@@ -61,3 +61,34 @@ helm uninstall aws-load-balancer-controller -n kube-system
 # 3. Destruir la infraestructura administrada por Terraform
 cd terraform
 terraform destroy
+
+ 🚀 Cómo desplegar este proyecto (EP3 — pipeline automatizado)
+
+Además del `deploy.yml` (EP2, despliegue de los microservicios en EKS), este repo incluye dos workflows manuales en `.github/workflows/` para gestionar la infraestructura completa EP3 (Terraform: EKS + RDS + DynamoDB + SQS + Lambdas + API Gateway + S3) directamente desde la pestaña **Actions** de GitHub, sin necesidad de correr comandos en tu terminal.
+
+| Workflow | Qué hace | Cuándo usarlo |
+| :--- | :--- | :--- |
+| `infra-deploy.yml` | Enciende RDS (si está detenida), escala el node group de EKS a 2, corre `terraform apply`, espera a que los nodos estén `Ready` y reinicia el ALB Controller. Al final valida DynamoDB, SQS, Lambdas, API Gateway y S3. | Antes de la presentación / demo |
+| `infra-teardown.yml` | Detiene RDS y escala el node group de EKS a 0 (sin borrar nada). | Al terminar de usar el entorno, para no seguir gastando créditos del Lab |
+
+ 1. Configurar los 3 Secrets de AWS (una vez, y cada vez que se reinicie el Lab)
+
+AWS Academy Learner Lab entrega credenciales **temporales** (incluyen un *Session Token*) que caducan al terminar cada sesión del Lab. Antes de correr cualquiera de los dos workflows:
+
+1. En el Lab: **AWS Details → AWS CLI → Show** y copia `aws_access_key_id`, `aws_secret_access_key` y `aws_session_token`.
+2. En GitHub: **Settings → Secrets and variables → Actions → New repository secret**, y crea (o actualiza) estos 3:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+   - `AWS_SESSION_TOKEN`
+
+ 2. Ejecutar un workflow
+
+1. Pestaña **Actions** del repo → selecciona `EP3 - Desplegar infraestructura completa (Terraform)` o `EP3 - Detener infraestructura (ahorro de costos)`.
+2. Botón **Run workflow**.
+3. En el campo de confirmación escribe exactamente `DEPLOY` (para desplegar) o `STOP` (para detener) — es una salvaguarda para no disparar estos pipelines por error.
+4. **Run workflow**. El progreso se ve en tiempo real en la pestaña Actions.
+
+ ⚠️ Importante
+- Las credenciales del Lab caducan en pocas horas: si el workflow falla con `ExpiredToken`/`InvalidClientTokenId`, actualiza los 3 Secrets (paso 1) y vuelve a correrlo.
+- `infra-deploy.yml` y `infra-teardown.yml` no destruyen infraestructura (`terraform destroy`); solo prenden/apagan RDS y escalan el node group. Lambdas, DynamoDB, SQS y S3 no generan costo en reposo y no se tocan.
+- Para destruir todo definitivamente, sigue la sección "🧹 Procedimiento de Limpieza y Destrucción" más abajo.
