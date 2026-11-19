@@ -1,0 +1,113 @@
+name: EP3 - Desplegar infraestructura completa (Terraform)
+
+# Pipeline manual: AWS Academy entrega credenciales TEMPORALES (requieren
+# Session Token) que expiran cada pocas horas. Por eso este workflow se
+# dispara a mano ("Run workflow") en vez de en cada push — asegúrate de
+# actualizar los 3 secrets de AWS (ver README) justo antes de ejecutarlo.
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Escribe DEPLOY para confirmar que quieres desplegar'
+        required: true
+        default: ''
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    name: Deploy infraestructura EP3
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirmar == 'DEPLOY' }}
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciales de AWS (Academy Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verificar identidad / cuenta activa
+        run: aws sts get-caller-identity
+
+      - name: Arrancar RDS (si está detenida)
+        id: rds
+        run: |
+          RDS_ID=$(aws rds describe-db-instances \
+            --query "DBInstances[?TagList[?Key=='Name' && Value=='freshbox-rds-mysql']].DBInstanceIdentifier | [0]" \
+            --output text)
+          echo "rds_id=$RDS_ID" >> "$GITHUB_OUTPUT"
+          STATUS=$(aws rds describe-db-instances --db-instance-identifier "$RDS_ID" --query "DBInstances[0].DBInstanceStatus" --output text)
+          echo "Estado actual: $STATUS"
+          if [ "$STATUS" = "stopped" ]; then
+            aws rds start-db-instance --db-instance-identifier "$RDS_ID"
+          fi
+          aws rds wait db-instance-available --db-instance-identifier "$RDS_ID"
+          echo "RDS disponible."
+
+      - name: Escalar node group de EKS a 2 nodos
+        run: |
+          aws eks update-nodegroup-config \
+            --cluster-name freshbox-cluster \
+            --nodegroup-name freshbox-node-group \
+            --scaling-config minSize=1,maxSize=4,desiredSize=2 || true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform init
+        working-directory: terraform
+        run: terraform init -upgrade
+
+      - name: Terraform plan
+        working-directory: terraform
+        run: terraform plan -out=ep3.tfplan
+
+      - name: Terraform apply
+        working-directory: terraform
+        run: terraform apply -auto-approve ep3.tfplan
+
+      - name: Esperar nodos EKS Ready
+        run: |
+          aws eks update-kubeconfig --name freshbox-cluster --region ${{ env.AWS_REGION }}
+          for i in $(seq 1 15); do
+            READY=$(kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready " || true)
+            echo "Nodos Ready: $READY (intento $i/15)"
+            if [ "$READY" -ge 2 ]; then break; fi
+            sleep 20
+          done
+          kubectl -n freshbox get pods,svc,ingress || true
+
+      - name: Reiniciar AWS Load Balancer Controller (re-registra targets)
+        run: |
+          kubectl -n kube-system rollout restart deployment aws-load-balancer-controller || true
+          kubectl -n kube-system rollout status deployment aws-load-balancer-controller --timeout=120s || true
+
+      - name: Verificación end-to-end
+        working-directory: terraform
+        run: |
+          echo "--- Outputs ---"
+          terraform output
+          echo ""
+          echo "--- DynamoDB ---"
+          aws dynamodb describe-table --table-name carrito-freshbox --query "Table.TableStatus" --output text
+          echo "--- SQS ---"
+          aws sqs get-queue-url --queue-name ordenes-freshbox --query "QueueUrl" --output text
+          echo "--- Lambdas ---"
+          for FN in freshbox-procesar-carrito freshbox-crear-orden freshbox-procesar-orden; do
+            aws lambda get-function --function-name "$FN" --query "Configuration.State" --output text
+          done
+          echo "--- API Gateway (prueba POST /cart) ---"
+          API_URL=$(terraform output -raw api_gateway_url)
+          curl -s -m 8 -X POST "$API_URL/cart" -H "Content-Type: application/json" \
+            -d '{"userId":"ci-check","productId":"1","nombre":"check","precio":100,"cantidad":1}' || true
+          echo ""
+          echo "Frontend: $(terraform output -raw frontend_url)"

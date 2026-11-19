@@ -1,0 +1,50 @@
+name: EP3 - Detener infraestructura (ahorro de costos)
+
+# Detiene RDS y escala el node group de EKS a 0, sin borrar nada.
+# Terraform NO gestiona el estado encendido/apagado de estos recursos
+# (son atributos operacionales, no de configuración), así que se hace
+# vía AWS CLI directo. Lambdas, DynamoDB, SQS y S3 no generan costo en
+# reposo y no se tocan.
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Escribe STOP para confirmar'
+        required: true
+        default: ''
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  teardown:
+    name: Detener RDS y escalar EKS a 0
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirmar == 'STOP' }}
+
+    steps:
+      - name: Configurar credenciales de AWS (Academy Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Detener RDS
+        run: |
+          RDS_ID=$(aws rds describe-db-instances \
+            --query "DBInstances[?TagList[?Key=='Name' && Value=='freshbox-rds-mysql']].DBInstanceIdentifier | [0]" \
+            --output text)
+          echo "RDS: $RDS_ID"
+          aws rds stop-db-instance --db-instance-identifier "$RDS_ID" || echo "(ya estaba detenida)"
+
+      - name: Escalar node group de EKS a 0
+        run: |
+          aws eks update-nodegroup-config \
+            --cluster-name freshbox-cluster \
+            --nodegroup-name freshbox-node-group \
+            --scaling-config minSize=0,maxSize=4,desiredSize=0
+
+      - name: Confirmación
+        run: echo "RDS deteniéndose y node group bajando a 0. Lambdas/DynamoDB/SQS/S3 no se tocan (sin costo en reposo)."
