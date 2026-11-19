@@ -1,0 +1,2 @@
+owner            = "tu-nombre"
+allowed_ssh_cidr = "TU.IP.PUBLICA/32"

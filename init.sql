@@ -1,8 +1,4 @@
--- ============================================
--- FreshBox SpA - Base de Datos (EP1)
--- Evaluacion Parcial 1 - ARY1102
--- ============================================
-
+-- FreshBox SpA - Base de Datos para RDS MySQL (EP2)
 CREATE DATABASE IF NOT EXISTS freshbox;
 USE freshbox;
 
@@ -19,10 +15,10 @@ CREATE TABLE IF NOT EXISTS productos (
 );
 
 INSERT INTO productos (nombre, descripcion, precio, stock, categoria) VALUES
-('Manzana organica 1kg', 'Manzanas rojas organicas, cultivo sin pesticidas, bolsa 1 kilogramo', 3490.00, 120, 'Frutas'),
-('Lechuga hidroponica', 'Lechuga fresca cultivada en sistema hidroponico, libre de tierra', 1990.00, 80, 'Verduras'),
-('Granola artesanal 500g', 'Granola con avena, miel, almendras y arandanos, sin azucar refinada', 4990.00, 60, 'Snacks'),
-('Jugo natural naranja 1L', 'Jugo 100% natural de naranja, sin preservantes ni colorantes', 2990.00, 100, 'Bebidas'),
-('Mix frutos secos 250g', 'Mezcla de almendras, nueces, castanas de caju y pasas organicas', 5490.00, 45, 'Snacks');
+('Manzana organica 1kg', 'Manzanas rojas organicas, cultivo sin pesticidas', 3490.00, 120, 'Frutas'),
+('Lechuga hidroponica', 'Lechuga fresca cultivada en sistema hidroponico', 1990.00, 80, 'Verduras'),
+('Granola artesanal 500g', 'Granola con avena, miel, almendras y arandanos', 4990.00, 60, 'Snacks'),
+('Jugo natural naranja 1L', 'Jugo 100% natural de naranja, sin preservantes', 2990.00, 100, 'Bebidas'),
+('Mix frutos secos 250g', 'Mezcla de almendras, nueces, castanas y pasas organicas', 5490.00, 45, 'Snacks');
 
 -- 2026 - Disenador asignatura: Ignacio A. Pastenet M.

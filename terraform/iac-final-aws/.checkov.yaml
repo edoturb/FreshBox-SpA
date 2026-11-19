@@ -1,0 +1,13 @@
+directory:
+  - modules/
+  - environments/
+framework:
+  - terraform
+output: cli
+quiet: false
+compact: true
+download-external-modules: false
+soft-fail: false
+skip-check:
+  # CKV2_AWS_11: VPC flow logs - fuera de alcance del ejercicio (costo)
+  - CKV2_AWS_11

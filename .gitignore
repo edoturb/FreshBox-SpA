@@ -5,3 +5,11 @@
 node_modules/
 .DS_Store
 *.log
+
+# EP3 Terraform/Lambda build artifacts
+terraform/build/
+lambda/*.zip
+lambda/*/node_modules/
+terraform/.terraform/
+terraform/*.tfstate*
+terraform/*.tfplan
